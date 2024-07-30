@@ -1,0 +1,9 @@
+config BR2_PACKAGE_PYTHON_FFMPEG
+    bool "python-ffmpeg"
+    select BR2_PACKAGE_PYTHON_FUTURE
+    help
+      python-ffmpeg is a library that provides bindings for FFmpeg in Python.
+      It allows you to interact with FFmpeg in Python to handle multimedia data.
+
+      https://github.com/kkroening/ffmpeg-python
+

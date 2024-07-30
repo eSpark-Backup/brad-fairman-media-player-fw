@@ -1,0 +1,8 @@
+config BR2_PACKAGE_PYTHON_PYSDL2
+	bool "python-pysdl2"
+	select BR2_PACKAGE_SDL2 # Ensure SDL2 is selected
+	help
+	  PySDL2 is a pure Python wrapper around the SDL2 library.
+	  It provides access to most of the SDL2 functions and methods.
+
+	  https://pysdl2.readthedocs.io/

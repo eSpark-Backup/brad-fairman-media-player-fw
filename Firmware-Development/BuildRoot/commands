@@ -1,0 +1,26 @@
+sudo ./upgrade_tool uf /home/ash/Downloads/RK3568/MediaPlayer/BuildRoot/proj2/new/rk356x_sdk-linux5.10/output/firmware/update.img
+
+vim /etc/os-release
+wpa_passphrase "eSpark Wifi" "47356880" | wpa_supplicant -B -i wlan0 -c /dev/stdin
+udhcpc -i wlan0
+
+pip install ffmpeg-python
+pip install PySDL2
+pip install numpy
+
+/home/ash/Downloads/RK3568/MediaPlayer/BuildRoot/proj2/new/rk356x_sdk-linux5.10/buildroot/output/rockchip_rk3568/host/bin/aarch64-linux-g++
+
+export SYSROOT_PATH=/home/ash/Downloads/RK3568/MediaPlayer/BuildRoot/proj2/new/rk356x_sdk-linux5.10/buildroot/output/rockchip_rk3568/host/aarch64-buildroot-linux-gnu/sysroot
+export CROSS_COMPILE_PATH=/home/ash/Downloads/RK3568/MediaPlayer/BuildRoot/proj2/new/rk356x_sdk-linux5.10/buildroot/output/rockchip_rk3568/host/bin
+
+$CROSS_COMPILE_PATH/aarch64-linux-g++ \
+-o sdtest sdltest.c \
+-I$SYSROOT_PATH/usr/include/SDL2 \
+-L$SYSROOT_PATH/usr/lib \
+-lSDL2
+
+$CROSS_COMPILE_PATH/aarch64-linux-g++ \
+-o check_directfb check_directfb.cpp \
+-I$SYSROOT_PATH/usr/include/directfb \
+-L$SYSROOT_PATH/usr/lib \
+-ldirectfb
