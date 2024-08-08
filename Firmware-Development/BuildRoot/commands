@@ -24,3 +24,10 @@ $CROSS_COMPILE_PATH/aarch64-linux-g++ \
 -I$SYSROOT_PATH/usr/include/directfb \
 -L$SYSROOT_PATH/usr/lib \
 -ldirectfb
+
+// changes in ffmpeg makefile (ffmpeg package)
+--enable-rkmpp \
+--enable-version3 \
+--extra-libs='-lrockchip_mpp -ldrm -lrockchip_vpu'
+
+// update mpp
