@@ -55,6 +55,16 @@ std::vector<std::string> get_video_files(const std::string& dir_path) {
     return video_files;
 }
 
+static void on_pad_added(GstElement *element, GstPad *pad, GstElement *sink) {
+    GstPad *sink_pad = gst_element_get_static_pad(sink, "sink");
+    if (gst_pad_is_linked(sink_pad)) {
+        gst_object_unref(sink_pad);
+        return;
+    }
+    gst_pad_link(pad, sink_pad);
+    gst_object_unref(sink_pad);
+}
+
 int main(int argc, char *argv[]) {
     GstElement *pipeline;
     GstElement *sink;
@@ -81,34 +91,66 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    for (const auto& video_file : video_files) {
-        g_printerr("File : %s\n", video_file.c_str());
+    while (1)
+    {
+        for (const auto& video_file : video_files) {
+            g_printerr("File : %s\n", video_file.c_str());
 
-        loop = g_main_loop_new(NULL, FALSE);
+            loop = g_main_loop_new(NULL, FALSE);
+            pipeline = gst_pipeline_new("video-player");
 
-        setup_pipeline(video_file.c_str(), pipeline, sink);
+            if (!pipeline) {
+                g_printerr("Failed to create pipeline\n");
+                return -1;
+            }
 
-        // Configure the video sink to use the screen resolution
-        sink = gst_bin_get_by_interface(GST_BIN(pipeline), GST_TYPE_VIDEO_RENDERER);
-        if (sink) {
-            g_object_set(sink, "fullscreen", TRUE, NULL);
-            g_object_set(sink, "width", screen_width, NULL);
-            g_object_set(sink, "height", screen_height, NULL);
-            gst_object_unref(sink);
-        } else {
-            g_printerr("Failed to find a video sink element\n");
+            GstElement *source = gst_element_factory_make("filesrc", "file-source");
+            GstElement *decoder = gst_element_factory_make("decodebin", "decoder");
+            GstElement *videoscale = gst_element_factory_make("videoscale", "videoscale");
+            GstElement *capsfilter = gst_element_factory_make("capsfilter", "capsfilter");
+            GstCaps *caps = gst_caps_new_simple("video/x-raw",
+                                                "width", G_TYPE_INT, screen_width,
+                                                "height", G_TYPE_INT, screen_height,
+                                                NULL);
+
+            if (!source || !decoder || !videoscale || !capsfilter) {
+                g_printerr("Failed to create elements\n");
+                return -1;
+            }
+
+            g_object_set(source, "location", video_file.c_str(), NULL);
+            g_object_set(capsfilter, "caps", caps, NULL);
+
+            gst_bin_add_many(GST_BIN(pipeline), source, decoder, videoscale, capsfilter, NULL);
+            gst_element_link(source, decoder);
+            gst_element_link(decoder, videoscale);
+            gst_element_link(videoscale, capsfilter);
+
+            sink = gst_element_factory_make("autovideosink", "video-sink");
+            if (!sink) {
+                g_printerr("Failed to create video sink\n");
+                return -1;
+            }
+
+            gst_bin_add(GST_BIN(pipeline), sink);
+            gst_element_link(capsfilter, sink);
+
+            g_signal_connect(decoder, "pad-added", G_CALLBACK(on_pad_added), videoscale);
+
+            gst_element_set_state(pipeline, GST_STATE_PLAYING);
+
+            bus = gst_element_get_bus(pipeline);
+            gst_bus_add_watch(bus, (GstBusFunc)on_bus_message, loop);
+
+            g_main_loop_run(loop);
+
+            gst_element_set_state(pipeline, GST_STATE_NULL);
+            gst_object_unref(bus);
+            gst_object_unref(pipeline);
+            gst_caps_unref(caps);
+            g_main_loop_unref(loop);
         }
-
-        bus = gst_element_get_bus(pipeline);
-        gst_bus_add_watch(bus, (GstBusFunc)on_bus_message, loop);
-
-        g_main_loop_run(loop);
-
-        gst_element_set_state(pipeline, GST_STATE_NULL);
-        gst_object_unref(bus);
-        gst_object_unref(pipeline);
-        g_main_loop_unref(loop);
     }
-
+    
     return 0;
 }
